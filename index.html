@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TypeBRAWL – 2-Player Typing Battle</title>
+<meta name="description" content="Master the arena in TypeBRAWL, the ultimate futuristic typing duel. Outtype your rival in high-speed arcade battles. Real-time combat meets precision!">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#070b1a;color:#e8f1ff;font-family:"Segoe UI","Trebuchet MS",Arial,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px}
+#wrap{position:relative;width:100%;max-width:960px;margin-bottom:46px}
+canvas{display:block;width:100%;height:auto;background:#0b1230;border:2px solid #29e0ff;border-radius:8px;box-shadow:0 0 24px rgba(41,224,255,.35)}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(7,11,26,.95);border-radius:6px;padding:18px;overflow:auto}
+#end{display:none}
+h1{margin:0 0 6px;font-size:54px;letter-spacing:2px;font-weight:900}
+h1 .r{color:#ff4a6b}h1 .b{color:#4a9bff}
+p{max-width:640px;line-height:1.5;margin:6px 0}
+.tag{color:#9fd8ff;font-size:17px}
+button{font:800 20px inherit;font-family:inherit;background:#29e0ff;color:#06222c;border:0;border-radius:6px;padding:12px 40px;margin:8px;cursor:pointer}
+button:hover{background:#7aeeff}
+button.alt{background:#24305e;color:#e8f1ff;font-size:16px;padding:10px 24px}
+button:focus-visible,summary:focus-visible{outline:3px solid #ffd23f;outline-offset:2px}
+details{max-width:700px;text-align:left;font-size:14px;line-height:1.5;margin-top:6px;width:100%}
+summary{cursor:pointer;text-align:center;color:#29e0ff;font-weight:700;font-size:16px}
+details h3{margin:10px 0 2px;font-size:15px;color:#ffd23f}
+details ul{margin:2px 0 4px;padding-left:20px}
+.red{color:#ff4a6b;font-weight:700}.blue{color:#4a9bff;font-weight:700}.pur{color:#c58bff;font-weight:700}
+#bar{position:absolute;right:0;bottom:-48px;display:flex;gap:6px}
+#bar button{margin:0;min-width:0;padding:7px 12px;font-size:14px}
+#pause{display:none;background:rgba(7,11,26,.82)}
+#pause .big{font-size:48px;font-weight:900;color:#29e0ff;margin-bottom:8px}
+#win{font-size:44px;font-weight:900;margin-bottom:4px}
+@media(max-width:600px){h1{font-size:36px}}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="c" width="960" height="540"></canvas>
+<div id="bar">
+  <button class="alt" id="pauseBtn">⏸ Pause</button>
+  <button class="alt" id="restartBtn">↻ Restart</button>
+  <button class="alt" id="mute" aria-label="Toggle sound">🔊 Sound on</button>
+  <button class="alt" id="menuBtn">☰ Menu</button>
+</div>
+
+<div class="ov" id="menu">
+  <h1><span class="r">Type</span><span class="b">BRAWL</span></h1>
+  <p class="tag">Master the arena in TypeBRAWL, the ultimate futuristic typing duel. Outtype your rival in high-speed arcade battles. Real-time combat meets precision!</p>
+  <p>TypeBRAWL is a 2-player competitive typing game. One player types <span class="red">Red</span> words, and the other types <span class="blue">Blue</span> words. As you type your words, you steal points from your opponent. The first player to take the full score wins.</p>
+  <button id="play">Play Now</button>
+  <p class="tag" style="font-size:14px">Press <b>Esc</b> or use the buttons under the game to pause or restart.</p>
+  <details>
+    <summary>How to play</summary>
+    <h3>Typing</h3>
+    <ul>
+      <li>Both players type at the same time.</li>
+      <li>Start typing any word that matches your color.</li>
+      <li>Once you start typing a word, you are locked onto that word.</li>
+      <li>After locking on, only the correct next letters will continue your progress.</li>
+      <li>When you finish a word, you score its points immediately. The score is displayed in a small circle in the corner of the word.</li>
+    </ul>
+    <h3>Word Timing</h3>
+    <ul>
+      <li>Words stay on screen for 5 seconds.</li>
+      <li>They start blinking 2 seconds before they disappear.</li>
+      <li>If you do not finish them in time, they disappear. Missing a word does not directly cost points, but it removes that scoring opportunity.</li>
+    </ul>
+    <h3>Double Score Words</h3>
+    <ul>
+      <li>If you start typing a 7-, 8-, or 9-letter word when there are only 2 seconds left (when it starts blinking), you will receive double points.</li>
+      <li>A long word completed at the last moment can be very valuable. However, if you do not finish it before it disappears, you receive no points.</li>
+    </ul>
+    <h3>Purple Words</h3>
+    <ul>
+      <li>A <span class="pur">purple word</span> appears every 15 seconds.</li>
+      <li>It stays available to be claimed for 5 seconds. During that time, <span class="red">Red</span> can press <b>Left Ctrl</b> and <span class="blue">Blue</span> can press <b>Right Ctrl</b> to claim it.</li>
+      <li>If nobody claims it before it expires, it disappears.</li>
+      <li>A purple word is worth 30 points. If the claimer finishes the word in time, they gain 30 points. If they fail, the opponent gains the 30 points instead. High-risk, high-reward!</li>
+    </ul>
+    <h3>After a purple word is claimed</h3>
+    <ul>
+      <li>The game action freezes.</li>
+      <li>The claimer gets a 3-second ready period.</li>
+      <li>Then the claimer has 3 seconds to type the purple word.</li>
+      <li>Only the claiming player can type during this phase.</li>
+    </ul>
+  </details>
+</div>
+
+<div class="ov" id="pause">
+  <div class="big">Paused</div>
+  <button id="resumeBtn">Resume</button>
+  <button class="alt" id="restart2">Restart</button>
+  <button class="alt" id="menu2">Main menu</button>
+</div>
+
+<div class="ov" id="end">
+  <div id="win"></div>
+  <p id="final"></p>
+  <button id="again">Play again</button>
+  <button class="alt" id="back">Main menu</button>
+</div>
+</div>
+
+<script>
+(function(){
+var W=960,H=540,TOTAL=100,LIFE=5,WARN=2,PURPLE_EVERY=15,PURPLE_LIFE=5;
+var cv=document.getElementById("c"),g=cv.getContext("2d");
+var menu=document.getElementById("menu"),endEl=document.getElementById("end");
+var RED="#ff4a6b",BLUE="#4a9bff",PUR="#b86bff",GOLD="#ffd23f";
+var POOL={
+ 3:"cat dog sun map fox hat cup bus pen sky net box key jam zip van wax yak".split(" "),
+ 4:"jump fish bird tree moon star rain wind frog lake cake ball game rock sand ship nest quiz".split(" "),
+ 5:"tiger apple river cloud happy music plant smile storm train beach dream field horse light queen zebra".split(" "),
+ 6:"planet rocket castle forest garden island bridge monkey orange silver yellow window violin jungle".split(" "),
+ 7:"thunder rainbow fantasy journey balloon captain dolphin teacher machine kitchen volcano".split(" "),
+ 8:"mountain elephant football birthday sunshine hospital umbrella treasure keyboard".split(" "),
+ 9:"adventure butterfly chocolate dangerous wonderful crocodile champions pineapple".split(" ")
+};
+var PWORDS="planet rocket castle forest garden island bridge monkey orange silver window jungle tiger beach".split(" ");
+var S=null,running=false,last=0;
+
+/* ---------- audio: synthesized music + sound effects ---------- */
+var ac=null,master,mus,fx,noiseBuf,muted=false,timer=null,nextT=0,step=0,BPM=132;
+var CH=[[57,60,64],[53,57,60],[60,64,67],[55,59,62]];
+function hz(m){return 440*Math.pow(2,(m-69)/12)}
+function initAudio(){
+  if(!ac){
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    master=ac.createGain();master.gain.value=muted?0:.6;master.connect(ac.destination);
+    mus=ac.createGain();mus.gain.value=.5;mus.connect(master);
+    fx=ac.createGain();fx.gain.value=.8;fx.connect(master);
+    noiseBuf=ac.createBuffer(1,ac.sampleRate*.5,ac.sampleRate);
+    var d=noiseBuf.getChannelData(0);for(var i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  }
+  if(ac.state==="suspended")ac.resume();
+}
+function tone(m,t,dur,type,vol,dest,slide){
+  var o=ac.createOscillator(),v=ac.createGain();
+  o.type=type;o.frequency.setValueAtTime(hz(m),t);
+  if(slide)o.frequency.exponentialRampToValueAtTime(hz(m+slide),t+dur);
+  v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(vol,t+.008);v.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(v);v.connect(dest);o.start(t);o.stop(t+dur+.03);
+}
+function kick(t){
+  var o=ac.createOscillator(),v=ac.createGain();
+  o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(42,t+.12);
+  v.gain.setValueAtTime(.9,t);v.gain.exponentialRampToValueAtTime(.001,t+.2);
+  o.connect(v);v.connect(mus);o.start(t);o.stop(t+.22);
+}
+function hit(t,dur,f,vol){
+  var s=ac.createBufferSource(),fl=ac.createBiquadFilter(),v=ac.createGain();
+  s.buffer=noiseBuf;fl.type="highpass";fl.frequency.value=f;
+  v.gain.setValueAtTime(vol,t);v.gain.exponentialRampToValueAtTime(.001,t+dur);
+  s.connect(fl);fl.connect(v);v.connect(mus);s.start(t);s.stop(t+dur+.02);
+}
+function sched(n,t){
+  var bar=Math.floor(n/16)%4,st=n%16,ch=CH[bar],sp=60/BPM/4;
+  var arp=[0,1,2,1,0,1,2,1,0,2,1,2,0,1,2,1][st];
+  tone(ch[arp]+12,t,sp*1.6,"square",.07,mus);
+  if(st%4===0)kick(t);
+  if(st===4||st===12)hit(t,.14,1500,.35);
+  if(st%2===0)hit(t,.04,7000,st%4===2?.18:.07);
+  if(st===0||st===6||st===10||st===14)tone(ch[0]-24,t,sp*3,"sawtooth",.2,mus);
+}
+function musicStart(){
+  initAudio();musicStop();step=0;nextT=ac.currentTime+.1;
+  timer=setInterval(function(){
+    while(nextT<ac.currentTime+.2){sched(step++,nextT);nextT+=60/BPM/4}
+  },30);
+}
+function musicStop(){if(timer){clearInterval(timer);timer=null}}
+function musicLevel(v){if(ac)mus.gain.setTargetAtTime(v,ac.currentTime,.08)}
+function sfx(n){
+  if(!ac)return;var t=ac.currentTime;
+  if(n==="tick")tone(84,t,.05,"triangle",.18,fx);
+  else if(n==="lock")tone(88,t,.07,"square",.14,fx);
+  else if(n==="word"){tone(76,t,.1,"square",.2,fx);tone(83,t+.07,.1,"square",.2,fx);tone(88,t+.14,.16,"square",.2,fx)}
+  else if(n==="double"){[76,83,88,95,100].forEach(function(m,i){tone(m,t+i*.06,.12,"square",.22,fx)})}
+  else if(n==="claim"){tone(60,t,.4,"sawtooth",.25,fx,12);tone(72,t+.05,.4,"square",.15,fx,12)}
+  else if(n==="beep")tone(81,t,.12,"square",.22,fx);
+  else if(n==="go"){tone(93,t,.3,"square",.25,fx)}
+  else if(n==="ok"){[72,76,79,84].forEach(function(m,i){tone(m,t+i*.09,.18,"square",.22,fx)})}
+  else if(n==="fail"){tone(60,t,.5,"sawtooth",.25,fx,-14)}
+  else if(n==="win"){[72,76,79,84,79,84,88,96].forEach(function(m,i){tone(m,t+i*.12,.25,"square",.22,fx);tone(m-12,t+i*.12,.25,"triangle",.2,fx)})}
+}
+function setMute(m){muted=m;if(ac)master.gain.setTargetAtTime(m?0:.6,ac.currentTime,.03);
+  var b=document.getElementById("mute");b.textContent=m?"🔇 Sound off":"🔊 Sound on"}
+document.getElementById("mute").onclick=function(e){setMute(!muted);e.currentTarget.blur()};
+
+
+function newGame(){
+  S={red:TOTAL/2,blue:TOTAL/2,gt:0,phase:"play",words:[],lock:{red:null,blue:null},
+     sp:{red:.4,blue:.4},purpleNext:PURPLE_EVERY,purple:null,ps:null,pt:0,fx:[],msg:"",over:null};
+}
+function rnd(n){return Math.floor(Math.random()*n)}
+function pickLen(){var r=Math.random();return r<.28?3+rnd(2):r<.7?5+rnd(2):7+rnd(3)}
+function usedFirst(){var u={};S.words.forEach(function(w){u[w.w[0]]=1});return u}
+function spawn(c){
+  var mine=S.words.filter(function(w){return w.c===c});
+  if(mine.length>=7)return;
+  var used=usedFirst(),taken={};mine.forEach(function(w){taken[w.slot]=1});
+  var free=[];for(var i=0;i<8;i++)if(!taken[i])free.push(i);
+  if(!free.length)return;
+  var cand=[];
+  for(var tries=0;tries<6&&!cand.length;tries++){
+    var L=pickLen();
+    cand=POOL[L].filter(function(w){return !used[w[0]]&&!S.words.some(function(x){return x.w===w})});
+  }
+  if(!cand.length)return;
+  var word=cand[rnd(cand.length)],slot=free[rnd(free.length)];
+  var col=slot%2,row=slot>>1,x0=c==="red"?28:498;
+  S.words.push({w:word,c:c,born:S.gt,slot:slot,x:x0+col*218+rnd(10),y:112+row*96+rnd(14),idx:0,locked:false,dbl:false,flash:0});
+}
+function score(c,p){
+  var o=c==="red"?"blue":"red",gain=Math.min(p,S[o]);
+  S[c]+=gain;S[o]-=gain;
+  if(S[o]<=0)win(c);
+}
+function win(c){
+  S.over=c;S.phase="over";musicStop();sfx("win");
+  var w=document.getElementById("win");
+  w.textContent=(c==="red"?"RED":"BLUE")+" wins!";w.style.color=c==="red"?RED:BLUE;
+  document.getElementById("final").textContent="Final score: Red "+Math.round(S.red)+" – Blue "+Math.round(S.blue);
+  endEl.style.display="flex";
+}
+function complete(c,w){
+  var pts=w.dbl?w.w.length*2:w.w.length;
+  S.words.splice(S.words.indexOf(w),1);S.lock[c]=null;
+  S.fx.push({x:w.x+20,y:w.y,t:0,text:"+"+pts,col:w.dbl?GOLD:(c==="red"?RED:BLUE)});
+  sfx(w.dbl?"double":"word");
+  score(c,pts);
+}
+function startPhase(){
+  document.getElementById("menu").style.display="none";endEl.style.display="none";
+  newGame();musicStart();
+  if(!running){running=true;last=performance.now();requestAnimationFrame(loop)}
+}
+function update(dt){
+  musicLevel(S.phase==="play"?.5:S.phase==="over"?0:.12);
+  S.fx.forEach(function(f){f.t+=dt});S.fx=S.fx.filter(function(f){return f.t<.9});
+  S.words.forEach(function(w){if(w.flash>0)w.flash-=dt});
+  if(S.phase==="play"){
+    S.gt+=dt;
+    ["red","blue"].forEach(function(c){S.sp[c]-=dt;if(S.sp[c]<=0){spawn(c);S.sp[c]=.8+Math.random()*.9}});
+    S.words=S.words.filter(function(w){
+      if(S.gt-w.born>=LIFE){if(S.lock[w.c]===w)S.lock[w.c]=null;return false}return true});
+    if(!S.purple&&S.gt>=S.purpleNext){S.purple={w:PWORDS[rnd(PWORDS.length)],born:S.gt};S.purpleNext+=PURPLE_EVERY}
+    if(S.purple&&S.gt-S.purple.born>=PURPLE_LIFE)S.purple=null;
+  }else if(S.phase==="ready"){
+    S.pt-=dt;var cb=Math.ceil(S.pt);if(cb<S.lastBeep&&cb>0){S.lastBeep=cb;sfx("beep")}
+    if(S.pt<=0){S.phase="type";S.pt=3;sfx("go")}
+  }else if(S.phase==="type"){
+    S.pt-=dt;if(S.pt<=0)purpleEnd(false);
+  }else if(S.phase==="result"){
+    S.pt-=dt;if(S.pt<=0)S.phase="play";
+  }
+}
+function purpleEnd(ok){
+  var c=S.ps.c,o=c==="red"?"blue":"red";
+  S.msg=ok?(c.toUpperCase()+" +30!"):("Failed! "+o.toUpperCase()+" +30");
+  S.msgCol=ok?(c==="red"?RED:BLUE):(o==="red"?RED:BLUE);
+  S.phase="result";S.pt=1.4;S.purple=null;sfx(ok?"ok":"fail");
+  score(ok?c:o,30);
+  if(S.over)return;
+  S.ps=null;
+}
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape"){togglePause();return}
+  if(!S||S.over||S.paused)return;
+  if(e.code==="ControlLeft"||e.code==="ControlRight"){
+    e.preventDefault();
+    if(S.phase==="play"&&S.purple&&!e.repeat){
+      var c=e.code==="ControlLeft"?"red":"blue";
+      S.ps={c:c,w:S.purple.w,idx:0};S.phase="ready";S.pt=3;S.lastBeep=4;sfx("claim");
+    }
+    return;
+  }
+  if(e.ctrlKey||e.metaKey||e.altKey||e.key.length!==1)return;
+  var k=e.key.toLowerCase();
+  if(k<"a"||k>"z")return;
+  if(S.phase==="type"){
+    var p=S.ps;
+    if(p.w[p.idx]===k){sfx("tick");p.idx++;if(p.idx>=p.w.length)purpleEnd(true)}
+    return;
+  }
+  if(S.phase!=="play")return;
+  var used=false;
+  ["red","blue"].forEach(function(c){
+    var w=S.lock[c];
+    if(w&&w.w[w.idx]===k){used=true;sfx("tick");w.idx++;if(w.idx>=w.w.length)complete(c,w)}
+  });
+  if(used)return;
+  ["red","blue"].forEach(function(c){
+    if(S.lock[c])return;
+    for(var i=0;i<S.words.length;i++){
+      var w=S.words[i];
+      if(w.c===c&&!w.locked&&w.w[0]===k){
+        w.locked=true;w.idx=1;S.lock[c]=w;sfx("lock");
+        w.dbl=(S.gt-w.born>=LIFE-WARN)&&w.w.length>=7&&w.w.length<=9;
+        return;
+      }
+    }
+  });
+});
+
+function rr(x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+function drawWord(w){
+  var age=S.gt-w.born,left=LIFE-age,blink=left<=WARN;
+  if(blink&&S.phase==="play"&&Math.floor(age*7)%2===0)return;
+  var col=w.c==="red"?RED:BLUE;
+  g.font="bold 28px Consolas,'Courier New',monospace";
+  var tw=g.measureText(w.w).width,bw=tw+30,bh=46;
+  g.fillStyle="rgba(10,16,40,.9)";rr(w.x,w.y,bw,bh,10);g.fill();
+  g.lineWidth=w.locked?4:2;g.strokeStyle=w.locked?"#fff":col;g.stroke();
+  g.textBaseline="middle";g.textAlign="left";
+  var done=w.w.slice(0,w.idx),rest=w.w.slice(w.idx);
+  g.fillStyle="#fff";g.fillText(done,w.x+15,w.y+bh/2+1);
+  g.fillStyle=col;g.fillText(rest,w.x+15+g.measureText(done).width,w.y+bh/2+1);
+  // timer line
+  g.fillStyle=blink?GOLD:col;g.fillRect(w.x+10,w.y+bh-6,(bw-20)*Math.max(0,left/LIFE),3);
+  // points circle
+  var dbl=w.dbl||(!w.locked&&blink&&w.w.length>=7&&w.w.length<=9);
+  var pts=dbl?w.w.length*2:w.w.length;
+  g.beginPath();g.arc(w.x+bw-4,w.y+2,15,0,7);g.fillStyle=dbl?GOLD:col;g.fill();
+  g.fillStyle=dbl?"#3a2a00":"#fff";g.font="bold 15px Arial";g.textAlign="center";g.fillText(pts,w.x+bw-4,w.y+3);
+}
+function txt(t,x,y,sz,col,al){g.font="bold "+sz+"px 'Segoe UI',Arial,sans-serif";g.textAlign=al||"center";g.textBaseline="middle";g.fillStyle=col;g.fillText(t,x,y)}
+function draw(){
+  var bgd=g.createLinearGradient(0,0,0,H);bgd.addColorStop(0,"#0b1230");bgd.addColorStop(1,"#150a2e");
+  g.fillStyle=bgd;g.fillRect(0,0,W,H);
+  g.strokeStyle="rgba(41,224,255,.07)";g.lineWidth=1;
+  for(var x=0;x<W;x+=48){g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke()}
+  for(var y=0;y<H;y+=48){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke()}
+  g.fillStyle="rgba(255,74,107,.06)";g.fillRect(0,80,W/2,H-80);
+  g.fillStyle="rgba(74,155,255,.06)";g.fillRect(W/2,80,W/2,H-80);
+  g.setLineDash([10,10]);g.strokeStyle="rgba(255,255,255,.25)";g.beginPath();g.moveTo(W/2,80);g.lineTo(W/2,H);g.stroke();g.setLineDash([]);
+  // score bar
+  var bx=28,bw=W-56,rw=bw*S.red/TOTAL;
+  g.fillStyle=RED;g.fillRect(bx,16,rw,28);g.fillStyle=BLUE;g.fillRect(bx+rw,16,bw-rw,28);
+  g.strokeStyle="#fff";g.lineWidth=2;g.strokeRect(bx,16,bw,28);
+  txt("RED  "+Math.round(S.red),bx+10,30,18,"#fff","left");
+  txt(Math.round(S.blue)+"  BLUE",bx+bw-10,30,18,"#fff","right");
+  txt("TypeBRAWL",W/2,64,18,"#29e0ff");
+  S.words.forEach(drawWord);
+  S.fx.forEach(function(f){g.globalAlpha=1-f.t/.9;txt(f.text,f.x,f.y-f.t*40,28,f.col);g.globalAlpha=1});
+  // purple word on screen
+  if(S.phase==="play"&&S.purple){
+    var left=PURPLE_LIFE-(S.gt-S.purple.born);
+    g.fillStyle="rgba(40,10,80,.92)";rr(W/2-190,H/2-20,380,100,16);g.fill();
+    g.lineWidth=4;g.strokeStyle=PUR;g.stroke();
+    txt(S.purple.w,W/2,H/2+20,40,PUR);
+    g.fillStyle=PUR;g.fillRect(W/2-170,H/2+62,340*Math.max(0,left/PURPLE_LIFE),5);
+    txt("30",W/2+176,H/2-18,20,"#fff");
+    txt("RED: Left Ctrl     BLUE: Right Ctrl",W/2,H/2-40,16,"#e6cfff");
+  }
+  // freeze phases
+  if(S.phase==="ready"||S.phase==="type"||S.phase==="result"){
+    g.fillStyle="rgba(7,11,26,.78)";g.fillRect(0,80,W,H-80);
+    var cc=S.ps?(S.ps.c==="red"?RED:BLUE):"#fff";
+    if(S.phase==="ready"){
+      txt(S.ps.c.toUpperCase()+" claimed the purple word!",W/2,190,34,cc);
+      txt("Get ready…  "+Math.ceil(S.pt),W/2,270,52,"#fff");
+      txt(S.ps.w.length+" letters · 3 seconds to type it",W/2,340,20,"#e6cfff");
+    }else if(S.phase==="type"){
+      var p=S.ps;g.font="bold 64px Consolas,'Courier New',monospace";
+      var dw=g.measureText(p.w.slice(0,p.idx)).width,fw=g.measureText(p.w).width;
+      g.textAlign="left";g.textBaseline="middle";
+      g.fillStyle="#fff";g.fillText(p.w.slice(0,p.idx),W/2-fw/2,260);
+      g.fillStyle=PUR;g.fillText(p.w.slice(p.idx),W/2-fw/2+dw,260);
+      txt("TYPE IT, "+p.c.toUpperCase()+"!",W/2,170,30,cc);
+      g.fillStyle=PUR;g.fillRect(W/2-200,330,400*Math.max(0,S.pt/3),10);
+      g.strokeStyle="#fff";g.lineWidth=2;g.strokeRect(W/2-200,330,400,10);
+    }else{
+      txt(S.msg,W/2,260,56,S.msgCol);
+    }
+  }
+}
+function loop(now){
+  if(!running)return;
+  var dt=Math.min(.05,(now-last)/1000);last=now;
+  if(S&&S.phase!=="over"&&!S.paused)update(dt);
+  if(S)draw();
+  requestAnimationFrame(loop);
+}
+var pauseEl=document.getElementById("pause"),pb=document.getElementById("pauseBtn");
+function togglePause(force){
+  if(!S||S.over||!running)return;
+  S.paused=typeof force==="boolean"?force:!S.paused;
+  pauseEl.style.display=S.paused?"flex":"none";
+  pb.textContent=S.paused?"▶ Resume":"⏸ Pause";
+  if(ac){if(S.paused)ac.suspend();else ac.resume()}
+}
+function restart(){
+  if(!S||!running)return;
+  pauseEl.style.display="none";pb.textContent="⏸ Pause";
+  startPhase();
+}
+function toMenu(){
+  running=false;S=null;musicStop();if(ac)ac.resume();
+  pauseEl.style.display="none";pb.textContent="⏸ Pause";
+  endEl.style.display="none";menu.style.display="flex";g.clearRect(0,0,W,H);
+}
+pb.onclick=function(e){togglePause();e.currentTarget.blur()};
+document.getElementById("restartBtn").onclick=function(e){restart();e.currentTarget.blur()};
+document.getElementById("menuBtn").onclick=function(e){toMenu();e.currentTarget.blur()};
+document.getElementById("resumeBtn").onclick=function(){togglePause(false)};
+document.getElementById("restart2").onclick=restart;
+document.getElementById("menu2").onclick=toMenu;
+window.addEventListener("blur",function(){togglePause(true)});
+document.getElementById("play").onclick=startPhase;
+document.getElementById("again").onclick=function(){pb.textContent="⏸ Pause";startPhase()};
+document.getElementById("back").onclick=toMenu;
+})();
+</script>
+</body>
+</html>
